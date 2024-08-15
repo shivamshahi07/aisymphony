@@ -4,9 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import Image from "next/image";
-import { Download, Loader } from "lucide-react";
-
+import { Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -157,8 +155,8 @@ const Summaryform = () => {
         {summaryResponse && (
           <div className="flex flex-col items-center">
             <p className="rounded-md shadow-sm p-4 bg-gray-100">
-            {typeof summaryResponse === 'string' 
-                ? summaryResponse 
+              {typeof summaryResponse === "string"
+                ? summaryResponse
                 : JSON.stringify(summaryResponse, null, 2)}
             </p>
           </div>
