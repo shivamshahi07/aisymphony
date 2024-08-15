@@ -39,3 +39,4 @@ node_modules/
 .next/
 .vercel/
 api-logic/node_modules/
+api-logic/.wrangler/
