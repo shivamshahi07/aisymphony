@@ -1,6 +1,5 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/(landing)/page": "app/(landing)/page.js",
-  "/(landing)/services/page": "app/(landing)/services/page.js",
-  "/(landing)/contact/page": "app/(landing)/contact/page.js"
+  "/(landing)/summary-gen/page": "app/(landing)/summary-gen/page.js",
+  "/(landing)/image-gen/page": "app/(landing)/image-gen/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js"
 }
