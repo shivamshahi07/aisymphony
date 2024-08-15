@@ -1,6 +1,6 @@
 export default function Contacts() {
   return (
-    <div className="container mx-auto px-4 mt-20">
+    <div className="container mx-auto px-4 min-h-screen mt-20">
       <h2 className="text-2xl font-bold mb-6 text-center">Contact us</h2>
       <h3>
         contact us at{" "}
