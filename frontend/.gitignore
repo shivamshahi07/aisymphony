@@ -30,16 +30,8 @@ yarn-error.log*
 
 # vercel
 .vercel
-
+# Ignore .env files
+.env
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-node_modules/
-.DS_Store
-.next/
-.vercel/
-api-logic/node_modules/
-api-logic/.wrangler/
-api-logic/node_modules/
-api-logic/.wrangler/
-frontend/.env
