@@ -19,12 +19,12 @@ export const services = [
     },
     {
       id: 3,
-      title: "Text Generation(coming soon)",
+      title: "Text Generation",
       name: "text-gen",
       Description: "Generate text using open source AI models.",
       vid: "/text-gen-demo.mov",
       source: "/text-gen",
-      btn: "Generate Text(wont work)",
+      btn: "Generate Text",
     },
   ];
 

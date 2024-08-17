@@ -37,7 +37,7 @@ app.post("/generate-image", async (c) => {
         {
           error: "Unsupported model. Please try from the given list of models.",
         },
-        400
+        400,
       );
     }
 
@@ -58,17 +58,16 @@ app.post("/generate-image", async (c) => {
   } catch (error) {
     console.error(
       `${new Date().toISOString()} - POST /generate-image Error: `,
-      error
+      error,
     );
     return c.json(
       { error: "An error occurred while generating the image." },
-      500
+      500,
     );
   }
 });
 const summarymodels: { [key: string]: string } = {
   m1: "@cf/facebook/bart-large-cnn",
-
 };
 
 app.post("/generate-summary", async (c) => {
@@ -84,7 +83,7 @@ app.post("/generate-summary", async (c) => {
         {
           error: "Unsupported model. Please try from the given list of models.",
         },
-        400
+        400,
       );
     }
 
@@ -103,13 +102,70 @@ app.post("/generate-summary", async (c) => {
   } catch (error) {
     console.error(
       `${new Date().toISOString()} - POST /generate-summary Error: `,
-      error
+      error,
     );
     return c.json(
       { error: "An error occurred while generating the summary." },
-      500
+      500,
     );
   }
 });
+const textmodels: { [key: string]: string } = {
+  m1: "@cf/meta-llama/llama-2-7b-chat-hf-lora",
+  m2: "@cf/mistral/mistral-7b-instruct-v0.2-lora",
+  m3: "@cf/openchat/openchat-3.5-0106",
+  m4: "@hf/thebloke/neural-chat-7b-v3-1-awq",
+  m5: "@cf/fblgit/una-cybertron-7b-v2-bf16",
+  m6: "@cf/tinyllama/tinyllama-1.1b-chat-v1.0",
+  m7: "@hf/nexusflow/starling-lm-7b-beta",
+};
+
+// In workers.ts
+
+app.post("/generate-text", async (c) => {
+  try {
+    const { prompt, modelName } = await c.req.json();
+
+    if (!prompt) {
+      return c.json({ error: "Please enter a valid prompt." }, 400);
+    }
+
+    if (!Object.keys(textmodels).includes(modelName)) {
+      return c.json(
+        {
+          error: "Unsupported model. Please try from the given list of models.",
+        },
+        400,
+      );
+    }
+
+    const selectedModel = textmodels[modelName];
+    const messages = [{ role: "user", content: prompt }];
+
+    const stream = await c.env.AI.run(selectedModel, {
+      stream: true,
+      messages,
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    });
+  } catch (error) {
+    console.error(
+      `${new Date().toISOString()} - POST /generate-text Error: `,
+      error,
+    );
+    return c.json(
+      { error: "An error occurred while generating the text." },
+      500,
+    );
+  }
+});
+   
+
 
 export default app;

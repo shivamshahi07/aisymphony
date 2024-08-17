@@ -1,5 +1,3 @@
 {
-  "/(landing)/summary-gen/page": "app/(landing)/summary-gen/page.js",
-  "/(landing)/image-gen/page": "app/(landing)/image-gen/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js"
+  "/(landing)/text-gen/page": "app/(landing)/text-gen/page.js"
 }
