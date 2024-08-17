@@ -119,16 +119,25 @@ const Textform = () => {
           }
         }
       }
-    } catch (error) {
-      if (error.name !== "AbortError") {
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        if (error.name !== "AbortError") {
+          console.error(
+            `${new Date().toISOString()} - POST generate-text Error:`,
+            error
+          );
+          settextresponse("An error occurred while generating the text.");
+        }
+      } else {
         console.error(
-          `${new Date().toISOString()} - POST generate-text Error:`,
+          `${new Date().toISOString()} - POST generate-text Unknown Error:`,
           error
         );
-        settextresponse("An error occurred while generating the text.");
+        settextresponse("An unknown error occurred.");
       }
     } finally {
       setIsGenerating(false);
+
       setIsWaiting(false);
     }
   };

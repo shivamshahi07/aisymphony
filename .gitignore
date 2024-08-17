@@ -44,3 +44,4 @@ api-logic/node_modules/
 api-logic/.wrangler/
 frontend/.env
 frontend/.next/
+frontend/.next
