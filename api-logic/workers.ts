@@ -22,6 +22,7 @@ const models: { [key: string]: BaseAiTextToImageModels } = {
   m1: "@cf/stabilityai/stable-diffusion-xl-base-1.0",
   m2: "@cf/bytedance/stable-diffusion-xl-lightning",
   m3: "@cf/lykon/dreamshaper-8-lcm",
+  m4: "@cf/black-forest-labs/flux-1-schnell"
 };
 
 app.post("/generate-image", async (c) => {
@@ -47,10 +48,23 @@ app.post("/generate-image", async (c) => {
     };
 
     const response = await c.env.AI.run(selectedModel, inputs);
+    if (modelName === "m4") {
+      // Special handling for m4 (Flux-1-Schnell)
+      const binaryString = atob(response.image);
+      const imgBuffer = Uint8Array.from(binaryString, (m) => m.codePointAt(0));
+
+      // Return binary image for m4
+      return new Response(imgBuffer, {
+        headers: {
+          "Content-Type": "image/jpeg", // Adjust format if needed
+        },
+      });
+    }
 
     if (!response) {
       throw new Error("Error getting a valid response.");
     }
+    console.log(response);
 
     return c.newResponse(response, 200, {
       "Content-Type": "image/png",

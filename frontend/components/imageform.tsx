@@ -30,10 +30,11 @@ const models: { [key: string]: string } = {
   m1: "stable-diffusion-xl-base-1.0",
   m2: "stable-diffusion-xl-lightning",
   m3: "dreamshaper-8-lcm",
+  m4: "flux-1-schnell"
 };
 
 const formSchema = z.object({
-  modelName: z.enum(["m1", "m2", "m3"]),
+  modelName: z.enum(["m1", "m2", "m3","m4"]),
   prompt: z.string().min(10, {
     message: "Prompt must be at least 10 characters.",
   }),

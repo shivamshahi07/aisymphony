@@ -8,7 +8,6 @@
     "start": "wrangler dev",
     "cf-typegen": "wrangler types"
   },
-
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -17,6 +16,6 @@
   },
   "dependencies": {
     "hono": "^4.5.5",
-    "wrangler": "^3.71.0"
+    "wrangler": "^3.90.0"
   }
 }
