@@ -44,14 +44,18 @@ export default function Home() {
         We use open source AI models to generate images, summaries, and text.
       </RevealAnimation>
       <div className="flex items-center justify-center space-x-4 mt-5 ">
-        <Button className="rounded-full border bg-transparent border-teal-200-400 hover:opacity-90 hover:bg-teal-400 bg-teal-500 ">
-          <Link href="/image-gen">Generate image</Link>
-          <Sparkles className="ml-1" />
-        </Button>
-        <Button className="rounded-full border bg-transparent border-teal-200-400 hover:opacity-90 text-neutral-500  ">
-          <Link href="/services">check all services</Link>
-          <MoveRight className="ml-1" />
-        </Button>
+        <Link href="/image-gen">
+          <Button className="rounded-full border bg-transparent border-teal-200-400 hover:opacity-90 hover:bg-teal-400 bg-teal-500 ">
+            Generate image
+            <Sparkles className="ml-1" />
+          </Button>
+        </Link>
+        <Link href="/services">
+          <Button className="rounded-full border bg-transparent border-teal-200-400 hover:opacity-90 text-neutral-500  ">
+            check all services
+            <MoveRight className="ml-1" />
+          </Button>
+        </Link>
       </div>
 
       <div className="p-2 "></div>
