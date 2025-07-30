@@ -4,15 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader } from "lucide-react";
+import { Loader, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import {
@@ -22,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "./ui/textarea";
+import { Input } from "./ui/input";
 
 const models: { [key: string]: string } = {
   m1: "@cf/meta-llama/llama-2-7b-chat-hf-lora",
@@ -34,23 +32,49 @@ const models: { [key: string]: string } = {
   m7: "@hf/nexusflow/starling-lm",
 };
 
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
 const formSchema = z.object({
   modelName: z.enum(["m1", "m2", "m3", "m4", "m5", "m6", "m7"]),
-  prompt: z.string().min(5, {
-    message: "Prompt must be at least 5 characters.",
+  message: z.string().min(1, {
+    message: "Message cannot be empty.",
   }),
 });
 
-const Textform = () => {
-  const [textresponse, settextresponse] = useState<string>("");
+const ChatMessage = ({ message }: { message: Message }) => {
+  return (
+    <div
+      className={`flex w-full ${
+        message.role === "user" ? "justify-end" : "justify-start"
+      } mb-4`}
+    >
+      <div
+        className={`max-w-[80%] rounded-lg px-4 py-2 ${
+          message.role === "user"
+            ? "bg-blue-500 text-white"
+            : "bg-gray-100 text-gray-900"
+        }`}
+      >
+        {message.content}
+      </div>
+    </div>
+  );
+};
+
+const ChatForm = () => {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isWaiting, setIsWaiting] = useState(false);
+  const [currentResponse, setCurrentResponse] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      prompt: "",
+      message: "",
       modelName: "m1",
     },
   });
@@ -63,10 +87,22 @@ const Textform = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, currentResponse]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    settextresponse("");
+    const userMessage = values.message;
+    form.reset({ message: "", modelName: values.modelName });
+
+    // Add user message immediately
+    const newMessages: Message[] = [...messages, { role: "user" as const, content: userMessage }];
+    setMessages(newMessages);
+    
     setIsGenerating(true);
-    setIsWaiting(true);
+    setCurrentResponse("");
 
     try {
       abortControllerRef.current = new AbortController();
@@ -79,16 +115,15 @@ const Textform = () => {
           },
           body: JSON.stringify({
             modelName: values.modelName,
-            prompt: values.prompt,
+            prompt: userMessage,
+            messages: newMessages,
           }),
           signal: abortControllerRef.current.signal,
         }
       );
 
       if (!response.ok) {
-        throw new Error(
-          "Failed to get a response from server, please try again."
-        );
+        throw new Error("Failed to get a response from server, please try again.");
       }
 
       const reader = response.body?.getReader();
@@ -96,23 +131,38 @@ const Textform = () => {
         throw new Error("Failed to read response stream");
       }
 
+      let accumulatedResponse = "";
       const decoder = new TextDecoder();
+      
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          // Only add the message if it hasn't been added by [DONE] event
+          if (isGenerating) {
+            setMessages(prev => [...prev, { role: "assistant" as const, content: accumulatedResponse }]);
+            setCurrentResponse("");
+            setIsGenerating(false);
+          }
+          break;
+        }
+        
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split("\n").filter((line) => line.trim() !== "");
+        
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
             if (data === "[DONE]") {
+              setMessages(prev => [...prev, { role: "assistant" as const, content: accumulatedResponse }]);
+              setCurrentResponse("");
               setIsGenerating(false);
               break;
             }
             try {
               const parsed = JSON.parse(data);
-              settextresponse((prev) => prev + (parsed.response || ""));
-              setIsWaiting(false);
+              const newText = parsed.response || "";
+              accumulatedResponse += newText;
+              setCurrentResponse(accumulatedResponse);
             } catch (e) {
               console.error("Error parsing JSON:", e);
             }
@@ -126,121 +176,116 @@ const Textform = () => {
             `${new Date().toISOString()} - POST generate-text Error:`,
             error
           );
-          settextresponse("An error occurred while generating the text.");
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "An error occurred while generating the response.",
+            },
+          ]);
         }
       } else {
         console.error(
           `${new Date().toISOString()} - POST generate-text Unknown Error:`,
           error
         );
-        settextresponse("An unknown error occurred.");
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "An unknown error occurred." },
+        ]);
       }
     } finally {
       setIsGenerating(false);
-
-      setIsWaiting(false);
     }
   };
 
   const handleStopGeneration = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+      if (currentResponse) {
+        setMessages(prev => [...prev, { role: "assistant" as const, content: currentResponse }]);
+        setCurrentResponse("");
+      }
       setIsGenerating(false);
-      setIsWaiting(false);
     }
   };
 
   return (
-    <div className="w-full flex flex-col lg:flex-row items-start gap-6 -mt-10">
-      <div className="w-full border rounded-lg p-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="modelName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Model</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a model" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.entries(models).map(([key, value]) => (
-                        <SelectItem key={key} value={key}>
-                          {value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Choose a model to generate your text
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="prompt"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prompt</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Write a story about a mustang on a highway that ..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Enter a prompt to generate text
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className=" flex gap-x-4 ">
-              <Button type="submit" disabled={isGenerating}>
-                {isGenerating ? (
-                  <Loader className="animate-spin mr-2" size={16} />
-                ) : null}
-                Generate Text
-              </Button>
-
-              {isGenerating && (
-                <Button
-                  type="button"
-                  className="mb-1 mr-2 "
-                  onClick={handleStopGeneration}
-                >
-                  Stop Generation
-                </Button>
-              )}
-            </div>
-          </form>
-        </Form>
+    <div className="w-full h-[80vh] flex flex-col">
+      <div className="flex items-center justify-between p-4 border-b">
+        <h2 className="text-lg font-semibold">Chat</h2>
+        <Select
+          value={form.watch("modelName")}
+          onValueChange={(value) => form.setValue("modelName", value as any)}
+        >
+          <SelectTrigger className="w-[300px]">
+            <SelectValue placeholder="Choose a model" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(models).map(([key, value]) => (
+              <SelectItem key={key} value={key}>
+                {value}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="w-full flex flex-col items-center justify-center">
-        {isWaiting && (
-          <p className="animate-pulse">Generating text, please wait...🤔</p>
+      <div
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-4"
+      >
+        {messages.map((message, index) => (
+          <ChatMessage key={index} message={message} />
+        ))}
+        {currentResponse && (
+          <ChatMessage message={{ role: "assistant", content: currentResponse }} />
         )}
-        {textresponse && (
-          <div className="flex flex-col items-center">
-            <p className="rounded-md shadow-sm p-4 bg-gray-100">
-              {textresponse}
-            </p>
-          </div>
-        )}
+      </div>
+
+      <div className="p-4 border-t">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex items-center space-x-2"
+          >
+            <FormField
+              control={form.control}
+              name="message"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input
+                      placeholder="Type your message..."
+                      {...field}
+                      disabled={isGenerating}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" disabled={isGenerating}>
+              {isGenerating ? (
+                <Loader className="animate-spin" size={16} />
+              ) : (
+                <Send size={16} />
+              )}
+            </Button>
+            {isGenerating && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleStopGeneration}
+              >
+                Stop
+              </Button>
+            )}
+          </form>
+        </Form>
       </div>
     </div>
   );
 };
 
-export default Textform;
+export default ChatForm;
